@@ -104,8 +104,8 @@ elmJsonVisitor maybeProject context =
     case maybeProject of
         Just { project } ->
             ( []
-            , { context
-                | exposedModules = exposedModulesForElmJson project
+            , { exposedModules = exposedModulesForElmJson project
+              , moduleTypes = context.moduleTypes
               }
             )
 
@@ -141,12 +141,12 @@ elmProjectExposedList exposed =
 dependencyDictVisitor : Dict String Dependency -> ProjectContext -> ( List nothing, ProjectContext )
 dependencyDictVisitor dependencies context =
     ( []
-    , { context
-        | exposedModules =
+    , { exposedModules =
             Dict.foldl
                 (\_ dependency exposedModules -> exposedModulesForDependency dependency exposedModules)
                 context.exposedModules
                 dependencies
+      , moduleTypes = context.moduleTypes
       }
     )
 
@@ -175,7 +175,7 @@ moduleDefinitionVisitor (Node _ mod) context =
             ( []
             , { lookupTable = context.lookupTable
               , modulesFromTheProject = context.modulesFromTheProject
-              , moduleType = InternalModule { data | exposes = Module.exposingList mod }
+              , moduleType = InternalModule { exposedTypes = data.exposedTypes, exposes = Module.exposingList mod }
               }
             )
 
@@ -241,9 +241,8 @@ declarationListVisitor nodes context =
             , modulesFromTheProject = context.modulesFromTheProject
             , moduleType =
                 InternalModule
-                    { data
-                        | exposedTypes =
-                            exposedTypesForDeclarationList data.exposes nodes data.exposedTypes
+                    { exposes = data.exposes
+                    , exposedTypes = exposedTypesForDeclarationList data.exposes nodes data.exposedTypes
                     }
             }
 
@@ -626,7 +625,9 @@ fromModuleToProject =
         (\moduleName context ->
             case context.moduleType of
                 InternalModule { exposedTypes } ->
-                    { initialProjectContext | moduleTypes = Dict.singleton moduleName exposedTypes }
+                    { exposedModules = initialProjectContext.exposedModules
+                    , moduleTypes = Dict.singleton moduleName exposedTypes
+                    }
 
                 ExposedModule _ ->
                     initialProjectContext
