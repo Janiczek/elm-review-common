@@ -8,6 +8,9 @@ module NoMissingTypeAnnotation exposing (rule)
 
 import Elm.Syntax.Declaration as Declaration exposing (Declaration)
 import Elm.Syntax.Node as Node exposing (Node)
+import Elm.Syntax.Range exposing (Location)
+import Elm.TypeInference.Type exposing (Type)
+import Review.Fix
 import Review.Rule as Rule exposing (Error, Rule)
 
 
@@ -72,14 +75,34 @@ declarationVisitor declaration =
                             function.declaration
                                 |> Node.value
                                 |> .name
+
+                        nameString : String
+                        nameString =
+                            Node.value name
+
+                        start : Location
+                        start =
+                            function.declaration
+                                |> Node.range
+                                |> .start
+
+                        inferredType : Type
+                        inferredType =
+                            Elm.TypeInference.Type.Unit
                     in
-                    [ Rule.error
-                        { message = "Missing type annotation for `" ++ Node.value name ++ "`"
+                    [ Rule.errorWithFix
+                        { message = "Missing type annotation for `" ++ nameString ++ "`"
                         , details =
                             [ "Type annotations help you understand what happens in the code, and it will help the compiler give better error messages."
                             ]
                         }
                         (Node.range name)
+                        [ Review.Fix.insertAt start
+                            ("{NAME} : {TYPE}\n"
+                                |> String.replace "{NAME}" nameString
+                                |> String.replace "{TYPE}" (Elm.TypeInference.Type.toString inferredType)
+                            )
+                        ]
                     ]
 
                 Just _ ->

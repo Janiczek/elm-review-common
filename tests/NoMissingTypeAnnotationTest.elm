@@ -37,6 +37,11 @@ hasNoTypeAnnotation = 1
                             , details = details
                             , under = "hasNoTypeAnnotation"
                             }
+                            |> Review.Test.whenFixed
+                                """module A exposing (..)
+hasNoTypeAnnotation : Int
+hasNoTypeAnnotation = 1
+"""
                         ]
         , test "should not report anything for custom type declarations" <|
             \_ ->
